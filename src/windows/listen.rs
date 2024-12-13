@@ -1,6 +1,6 @@
 use crate::{
-    rdev::{Event, ListenError},
-    windows::common::{convert, get_scan_code, set_key_hook, set_mouse_hook, HookError},
+    rdev::{Event, EventType, ListenError},
+    windows::common::{convert, get_scan_code, set_key_hook, set_mouse_hook, HookError, KEYBOARD},
 };
 use std::{os::raw::c_int, ptr::null_mut, time::SystemTime};
 use winapi::{
@@ -31,10 +31,20 @@ unsafe fn raw_callback(
     if code == HC_ACTION {
         let (opt, code) = convert(param, lpdata);
         if let Some(event_type) = opt {
+            let unicode = match &event_type {
+                EventType::KeyPress(_key) => match (*KEYBOARD).lock() {
+                    Ok(mut keyboard) => keyboard.get_unicode(lpdata),
+                    Err(e) => {
+                        println!("Error matching unicode: {:?}", e);
+                        None
+                    }
+                },
+                _ => None,
+            };
             let event = Event {
                 event_type,
                 time: SystemTime::now(),
-                unicode: None,
+                unicode,
                 platform_code: code as _,
                 position_code: get_scan_code(lpdata),
                 usb_hid: 0,
