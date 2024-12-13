@@ -53,11 +53,15 @@ unsafe fn raw_callback(
                 match &event_type {
                     EventType::KeyPress(_key) => match (*KEYBOARD).lock() {
                         Ok(mut keyboard) => keyboard.get_unicode(lpdata),
-                        Err(_) => None,
+                        Err(e) => {
+                            println!("Error matching unicode: {:?}", e);
+                            None
+                        }
                     },
                     _ => None,
                 }
             } else {
+                println!("GET_KEY_UNICODE is false");
                 None
             };
             let event = Event {
